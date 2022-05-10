@@ -25,6 +25,7 @@ extern byte inbuf[];
 /* total size of the ROM we're creating (always a power of 2 and > 0x2000) */
 extern size_t romsize;
 
+extern int quiet;
 /*
  * read an ASCII assembly language file (with
  * statements like dc.b $00,$1a) and convert it
@@ -381,7 +382,7 @@ WriteSINGLE(char *filename, int nosplit)
 	tmpbuf[0] = fgetc(infile);
 	ungetc(tmpbuf[0], infile);
 	if (tmpbuf[0] >= 0xf6) {
-		printf("Skipping suspected existing header...\n");
+		if ( !quiet ) printf("Skipping suspected existing header...\n");
 		fseek(infile, 8192, SEEK_SET);
 	}
 
@@ -392,7 +393,8 @@ WriteSINGLE(char *filename, int nosplit)
 		fwrite(outbuf, 4, 1, outfile);
 		byteswritten += 4;
 	}
-	printf("Wrote %ld bytes of %ld to %s\n", byteswritten, romsize, filename);
+	if ( !quiet ) printf("Wrote %ld bytes of %ld to %s\n",
+                             byteswritten, romsize, filename);
 
 	fclose(infile);
 	fclose(outfile);

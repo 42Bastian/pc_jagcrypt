@@ -127,7 +127,7 @@ int TursiMode = 0; /* operates normally unless you set -tursi */
 long filesize;                  /* length of file (+ 0x2000, since ROM starts at 0x802000 */
 long romsize;                   /* size of ROM needed to contain the file */
 int32_t MD5state[4];            /* MD5 hash for file+fill */
-
+int quiet = 0;
 /*
  * boot flags and vectors
  */
@@ -139,7 +139,8 @@ byte Romconfig[12] = {
 
 void usage(void)
 {
-  fprintf(stderr, "Usage: jagcrypt -[h|n|4|u] [-p] filename.ext\n");
+  fprintf(stderr, "Usage: jagcrypt [-q] -[h|n|4|u] [-p] filename.ext\n");
+  fprintf(stderr, "   -q: Be quiet\n");
   fprintf(stderr, "Output format is specified by the first flag:\n");
   fprintf(stderr, "   -h: Use HI/LO format, split in pieces if > 2 megs total\n");
   fprintf(stderr, "   -n: Use HI/LO format, don't split large files\n");
@@ -148,7 +149,8 @@ void usage(void)
   fprintf(stderr, "Exactly one of the flags above must appear\n");
   fprintf(stderr, "Optional flags:\n");
   fprintf(stderr, "   -p: Use previous encryption data from a .XXX file\n");
-  fprintf(stderr, "   -tursi <bin>: load and encrypt the compiled GPU BIN as a header, no patching. Only XXX exported.\n");
+  fprintf(stderr, "   -tursi <bin>: load and encrypt the compiled GPU BIN as a\n"
+                  "                  header, no patching. Only XXX exported.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Examples:\n");
   fprintf(stderr, "To encrypt the 4 meg file FOO.ROM into FOO.HI0, FOO.HI1,\n");
@@ -244,7 +246,7 @@ int main(int argc, char **argv)
   int i;                                /* scratch variable */
   FILE * fhandle;
   byte * nnum, * cnum;
-  int outfmt;                   /* output format */
+  int outfmt = ROM4;                   /* output format */
   int nosplit;          /* split HI/LO parts of output (if 0) or not (if -1) */
   char * filename;      /* name of file to encrypt */
   size_t xxxsize;               /* size of .XXX file */
@@ -254,10 +256,6 @@ int main(int argc, char **argv)
 
   xxxsize = 1036;               /* default size of a .XXX file */
   nosplit = 0;
-  printf("\n");
-  printf("JAGUAR Cartridge (quik) Encryption Code\n");
-  printf("Including Tursi's extentions\n");
-  printf("Version 0.8\n");
 
   if (argc < 3) {
     usage();
@@ -268,6 +266,11 @@ int main(int argc, char **argv)
   if (argv[0][0] != '-') {
     fprintf(stderr, "ERROR: you must specify an output format\n");
     usage();
+  }
+
+  if (argv[0][1] == 'q'){
+    quiet = 1;
+    ++argv;
   }
 
   switch(argv[0][1]) {
@@ -307,7 +310,7 @@ int main(int argc, char **argv)
     if (argv[0][1] == 'p'){
       useprevdata = 1;
     } else if (0 == strcmp(argv[0], "-tursi")) {
-      printf("Switching to Tursi's encryption mode.\n");
+      if ( !quiet ) printf("Switching to Tursi's encryption mode.\n");
       TursiMode=1;
       boot1 = boot_tursi;
     } else {
@@ -325,6 +328,12 @@ int main(int argc, char **argv)
   if (argv[1]) {
     fprintf(stderr, "ERROR: only 1 file may be specified at a time\n");
     usage();
+  }
+  if ( !quiet ){
+    printf("\n");
+    printf("JAGUAR Cartridge (quik) Encryption Code\n");
+    printf("Including Tursi's extentions\n");
+    printf("Version 0.9\n");
   }
 
   filename = argv[0];
@@ -356,7 +365,7 @@ int main(int argc, char **argv)
     fclose(fhandle);
   } else {
     if (DetectFileType(fhandle))  {
-      printf("Detected existing ROM header.\n");
+      if ( !quiet ) printf("Detected existing ROM header.\n");
       srcoffset = 0x2000;
     } else {
       srcoffset = 0;
@@ -366,7 +375,7 @@ int main(int argc, char **argv)
       perror(filename);
       exit(1);
     }
-    printf("Calculating MD5 on: %s\n", filename);
+    if ( !quiet ) printf("Calculating MD5 on: %s\n", filename);
   }
 
   filesize = 0x2000;    /* file starts at offset +$2000 */
@@ -495,7 +504,7 @@ int main(int argc, char **argv)
     byte *a0, *a1, *a2, *a3, *a4;
     int32_t d0, d1, d2, d3;
 
-    printf("Calculating RSA...\n");
+    if ( !quiet ) printf("Calculating RSA...\n");
 
     /* stuff appropriate values into the GPU code */
     /* (Sorry about the mess, this was a straight conversion of Dave's
@@ -578,11 +587,11 @@ int main(int argc, char **argv)
   // patch number of blocks
   if (TursiMode) {
     int b = (boot_tursi_size+64)/65;
-    printf("New boot uses %d blocks\n", b);
+    if ( !quiet ) printf("New boot uses %d blocks\n", b);
     b = 0x100 - b;
     inbuf[0] = b;
   } else {
-    printf("ROM size %ld bytes...\n", romsize);
+    if ( !quiet ) printf("ROM size %ld bytes...\n", romsize);
   }
   /* create signature file */
   fhandle = fopen_with_extension(filename, ".XXX", "wb");
@@ -597,7 +606,7 @@ int main(int argc, char **argv)
   fclose(fhandle);
 
   if (!TursiMode) {
-    printf("Writing data...\n");
+    if ( !quiet ) printf("Writing data...\n");
     if (outfmt == HILO) {                        /* Hi/Lo split */
       WriteHILO(filename, srcoffset, nosplit);
 //->    } else if (outfmt == SINGLE) {
