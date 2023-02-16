@@ -578,20 +578,20 @@ int main(int argc, char **argv)
   memset(inbuf, 0xff, sizeof(inbuf));
 
   /* copy over the RSA signature */
-  for(i = 0; i < 651; i++){
-    inbuf[i] = romimg[i];
-  }
-
-  memcpy(inbuf+0x400, Romconfig, 12);
-
-  // patch number of blocks
   if (TursiMode) {
     int b = (boot_tursi_size+64)/65;
+    memcpy(inbuf, romimg, b*65+1);
     if ( !quiet ) printf("New boot uses %d blocks\n", b);
     b = 0x100 - b;
     inbuf[0] = b;
   } else {
-    if ( !quiet ) printf("ROM size %ld bytes...\n", romsize);
+    memcpy(inbuf, romimg, 651);
+  }
+  memcpy(inbuf+0x400, Romconfig, 12);
+
+  // patch number of blocks
+  if (!TursiMode && !quiet ) {
+    printf("ROM size %ld bytes...\n", romsize);
   }
   /* create signature file */
   fhandle = fopen_with_extension(filename, ".XXX", "wb");

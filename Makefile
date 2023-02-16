@@ -10,7 +10,7 @@
 SYSTYPE     = __CYGWIN__
 
 # Uncomment the following lines to compile for *nix
-#SYSTYPE     = __GCCUNIX__
+SYSTYPE     = __GCCUNIX__
 
 
 ifeq ($(SYSTYPE),__GCCWIN32__)
@@ -73,5 +73,3 @@ obj/%.o: %.cpp
 
 jagcrypt$(EXESUFFIX): $(OBJS)
 	@$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-	strip --strip-all jagcrypt$(EXESUFFIX)
-	$(UPX) jagcrypt$(EXESUFFIX)
